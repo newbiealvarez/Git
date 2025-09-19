@@ -12,6 +12,7 @@ frame.Parent = ScreenGui
 frame.Position = UDim2.new(0.5, -200, 0.5, -150)
 frame.Size = UDim2.new(0, 400, 0, 300)
 frame.BackgroundColor3 = Color3.fromRGB(34, 34, 34)
+frame.ClipsDescendants = true -- Ensures the frame hides elements when they slide off screen
 
 -- Title Label
 local titleLabel = Instance.new("TextLabel")
@@ -23,30 +24,37 @@ titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 titleLabel.TextSize = 24
 titleLabel.BackgroundTransparency = 1
 
--- Trade Freeze Button
+-- Sliding Panel (For buttons)
+local slidePanel = Instance.new("Frame")
+slidePanel.Parent = frame
+slidePanel.Position = UDim2.new(0, 0, 0, 60)
+slidePanel.Size = UDim2.new(0, 400, 0, 180)
+slidePanel.BackgroundTransparency = 0.3
+slidePanel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+slidePanel.ClipsDescendants = true
+
+-- Adding Buttons to the Sliding Panel
 local tradeFreezeButton = Instance.new("TextButton")
-tradeFreezeButton.Parent = frame
-tradeFreezeButton.Position = UDim2.new(0, 10, 0, 60)
+tradeFreezeButton.Parent = slidePanel
+tradeFreezeButton.Position = UDim2.new(0, 10, 0, 0)
 tradeFreezeButton.Size = UDim2.new(0, 380, 0, 40)
 tradeFreezeButton.Text = "Enable Trade Freeze (OFF)"
 tradeFreezeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 tradeFreezeButton.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
 tradeFreezeButton.TextSize = 18
 
--- Offer Pets Button
 local offerPetsButton = Instance.new("TextButton")
-offerPetsButton.Parent = frame
-offerPetsButton.Position = UDim2.new(0, 10, 0, 120)
+offerPetsButton.Parent = slidePanel
+offerPetsButton.Position = UDim2.new(0, 10, 0, 50)
 offerPetsButton.Size = UDim2.new(0, 380, 0, 40)
 offerPetsButton.Text = "Offer Pets (Priority)"
 offerPetsButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 offerPetsButton.BackgroundColor3 = Color3.fromRGB(34, 167, 89)
 offerPetsButton.TextSize = 18
 
--- Force Accept Button
 local forceAcceptButton = Instance.new("TextButton")
-forceAcceptButton.Parent = frame
-forceAcceptButton.Position = UDim2.new(0, 10, 0, 180)
+forceAcceptButton.Parent = slidePanel
+forceAcceptButton.Position = UDim2.new(0, 10, 0, 100)
 forceAcceptButton.Size = UDim2.new(0, 380, 0, 40)
 forceAcceptButton.Text = "Force Accept"
 forceAcceptButton.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -55,13 +63,43 @@ forceAcceptButton.TextSize = 18
 
 -- Status Text Label
 local statusText = Instance.new("TextLabel")
-statusText.Parent = frame
-statusText.Position = UDim2.new(0, 10, 0, 230)
+statusText.Parent = slidePanel
+statusText.Position = UDim2.new(0, 10, 0, 150)
 statusText.Size = UDim2.new(0, 380, 0, 40)
 statusText.Text = "Trade Status: Not Frozen"
 statusText.TextColor3 = Color3.fromRGB(255, 255, 255)
 statusText.TextSize = 16
 statusText.BackgroundTransparency = 1
+
+-- Swipe Logic (Dragging the Panel)
+local dragging = false
+local dragStart = nil
+local startPos = nil
+
+-- Function to start dragging
+slidePanel.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = slidePanel.Position
+    end
+end)
+
+-- Function to stop dragging
+slidePanel.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+-- Function to update the panel position while dragging
+slidePanel.InputChanged:Connect(function(input)
+    if dragging then
+        local delta = input.Position - dragStart
+        slidePanel.Position = UDim2.new(0, startPos.X.Offset + delta.X, 0, startPos.Y.Offset)
+    end
+end)
 
 -- Trade Freeze Logic
 local function toggleTradeFreeze()
@@ -76,17 +114,18 @@ local function toggleTradeFreeze()
     end
 end
 
-tradeFreezeButton.MouseButton1Click:Connect(toggleTradeFreeze)
+tradeFreezeButton.MouseButton1Click:Connect(function()
+    toggleTradeFreeze()
+end)
 
 -- Offer Pets Logic
 local function offerPets()
     if TradeStatus == "Frozen" then
-        print("You cannot offer pets because trade is frozen.")
         statusText.Text = "Trade Status: Frozen"
+        print("You cannot offer pets because trade is frozen.")
         return
     end
     
-    -- Placeholder for actual pet offering logic
     if #pets > 0 then
         print("Offering Pets...")
         -- Add your pet offer logic here (sending pets for trade, etc.)
@@ -95,7 +134,9 @@ local function offerPets()
     end
 end
 
-offerPetsButton.MouseButton1Click:Connect(offerPets)
+offerPetsButton.MouseButton1Click:Connect(function()
+    offerPets()
+end)
 
 -- Force Accept Logic
 local function forceAccept()
@@ -106,9 +147,6 @@ local function forceAccept()
     end
 end
 
-forceAcceptButton.MouseButton1Click:Connect(forceAccept)
-
--- Optionally, you can update the pets table if you want to display the pets or add them dynamically.
--- This part will depend on the specific game mechanics for pets.
-
--- This is just an example to show how to structure and handle the trade freeze system.
+forceAcceptButton.MouseButton1Click:Connect(function()
+    forceAccept()
+end)
